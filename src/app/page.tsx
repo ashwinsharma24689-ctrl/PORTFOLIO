@@ -356,9 +356,8 @@ const PROJECTS: Project[] = [
     category: "Digital Design",
     tags: ["Verilog", "Microarchitecture"],
     bullets: [
-      "5-stage pipelined RV32I RISC-V CPU with full hazard resolution: EX/MEM & MEM/WB forwarding, load-use stall detection, branch flush",
-      "Custom 32-bit Carry-Select Adder (CSLA) for reduced critical path",
-      "Complete RV32I ISA support (R/I/S/B/U/J types, all branch variants); modular testbench suite across 11 testbenches",
+      "5-stage RV32I CPU with forwarding, load-use stall handling, and branch flush logic.",
+      "Custom 32-bit CSLA plus full RV32I ISA coverage validated across 11 testbenches.",
     ],
     status: "Verified",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -370,9 +369,8 @@ const PROJECTS: Project[] = [
     category: "Embedded/IoT",
     tags: ["Bare-Metal C", "ARM Cortex-M3"],
     bullets: [
-      "Bare-metal RTOS-style scheduler on STM32F103, from scratch (no HAL/CubeMX)",
-      "Custom PLL clock config, interrupt-driven SysTick heartbeat, non-blocking USART driver with ring-buffered shell I/O",
-      "Independently debugged linker conflicts, clock-tree issues, ISR/main-loop race conditions",
+      "Bare-metal RTOS-style scheduler on STM32F103, built from scratch without HAL/CubeMX.",
+      "Interrupt-driven SysTick plus non-blocking USART shell with clock-tree and race-condition fixes.",
     ],
     status: "Deployed",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -385,9 +383,8 @@ const PROJECTS: Project[] = [
     category: "Digital Design",
     tags: ["Verilog", "RTL Design"],
     bullets: [
-      "8-bit serial-commanded compute engine: UART physical layer, dual synchronous FIFOs, register file, CLA-based ALU (10 RISC-V-style opcodes)",
-      "Targeted 50 MHz FPGA deployment",
-      "Verified across 11 testbenches, 152/152 checks passing in Icarus Verilog; found & fixed 3 functional bugs",
+      "8-bit serial-commanded compute engine with UART, dual FIFOs, register file, and CLA ALU.",
+      "Verified across 11 testbenches with 152/152 checks passing in Icarus Verilog.",
     ],
     status: "Verified",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -398,9 +395,8 @@ const PROJECTS: Project[] = [
     category: "Digital Design",
     tags: ["Verilog", "Cadence Xcelium/Genus"],
     bullets: [
-      "Parallel carry-lookahead network avoiding ripple-carry delay",
-      "Simulated in Xcelium (10/10 tests passing); synthesized in Genus — TSMC18, 32 cells, 665 µm²",
-      "Validated with RTL-vs-gate-level formal equivalence checking",
+      "8-bit carry-lookahead adder designed to avoid ripple-carry delay.",
+      "Simulated in Xcelium, synthesized in Genus on TSMC18, and formally equivalence-checked.",
     ],
     status: "Synthesized",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -412,9 +408,8 @@ const PROJECTS: Project[] = [
     category: "Embedded/IoT",
     tags: ["Embedded C", "Python", "ESP32", "UDP"],
     bullets: [
-      "ESP32-based system integrating DHT22 + MQ2 sensors, real-time UDP streaming over WiFi",
-      "Tunneled via playit.gg to a Python base station for live alerting + CSV logging",
-      "Full pipeline simulated on Wokwi (Client-Server, UDP/TCP, OSI Layers 3–4)",
+      "ESP32 environmental monitor streaming DHT22 and MQ2 data over UDP WiFi.",
+      "playit.gg tunnel to a Python base station for alerts, logging, and Wokwi validation.",
     ],
     status: "Deployed",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -425,9 +420,8 @@ const PROJECTS: Project[] = [
     category: "Embedded/IoT",
     tags: ["Embedded C", "PWM", "I2C"],
     bullets: [
-      "Bench instrument measuring LED forward voltage & current via 10Ω sense resistor",
-      "Closed-loop PWM control (1–20 mA), I2C 16×2 LCD output",
-      "Lookup engine mapping resistance to nearest E24 value, with >0.5W power-dissipation warnings",
+      "Bench instrument for LED forward-voltage and current measurement using a 10Ω sense resistor.",
+      "Closed-loop PWM control with E24 lookup, power warnings, and I2C LCD output.",
     ],
     status: "Verified",
     github: "https://github.com/ashwinsharma24689-ctrl",
@@ -587,14 +581,15 @@ export default function Portfolio() {
               Ashwin Sharma
             </h1>
             <p className="mb-6 font-mono text-lg text-[#E0A458] sm:text-xl">
-              Hardware ↔ Firmware Engineer
+              Hardware / Firmware Engineer
             </p>
-            <p className="mb-10 max-w-2xl text-base leading-relaxed text-[#E8E8E3]/75 sm:text-lg">
-              Final-year Electronics and Communication Engineering student working across the
-              stack — from RTL/digital design and VLSI verification flows down to bare-metal
-              firmware and IoT systems on ARM and ESP32. I design CPUs and compute engines in
-              Verilog, verify them to gate level, and then write the embedded C that talks to
-              real silicon.
+            <p className="mb-3 max-w-2xl text-base leading-relaxed text-[#E8E8E3]/75 sm:text-lg">
+              Final-year ECE student building across RTL, VLSI verification, bare-metal firmware,
+              and ESP32/ARM IoT systems.
+            </p>
+            <p className="mb-10 max-w-2xl text-sm leading-relaxed text-[#E8E8E3]/55 sm:text-base">
+              Targeting VLSI, embedded systems, and firmware internships where I can design
+              hardware, debug low-level behavior, and ship real products.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
