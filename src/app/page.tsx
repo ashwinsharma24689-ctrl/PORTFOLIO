@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
+
 const NAV_LINKS = [
   { id: "about", label: "ABOUT", hex: "0x01" },
   { id: "skills", label: "SKILLS", hex: "0x02" },
