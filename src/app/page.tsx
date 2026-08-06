@@ -2,30 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-/* ============================================================
-   ASHWIN SHARMA — PORTFOLIO
-   Aesthetic: dark FR4 PCB meets oscilloscope readout.
-
-   DROP-IN NOTES FOR YOUR NEXT.JS REPO
-   ------------------------------------------------------------
-   1. Save this file as: src/app/page.tsx
-      (or import <Portfolio /> into an existing page — the
-      default export below is the whole page).
-   2. Put both resume PDFs in your /public folder, using these
-      exact names (or update RESUME_VLSI_HREF / RESUME_EMBEDDED_HREF
-      below to match whatever you name them):
-        public/Ashwin_Sharma_Resume_VLSI.pdf
-        public/Ashwin_Sharma_Resume_Embedded.pdf
-   3. Make sure tailwind.config.js "content" globs cover this
-      file, e.g. "./src/app/**/*.{ts,tsx}" — arbitrary-value
-      classes (bg-[#0A0E12] etc.) compile fine under a real
-      Tailwind JIT build.
-   4. Add JetBrains Mono + Inter however you prefer — either the
-      Google Fonts <link>/@import below, or next/font (recommended
-      for Next.js — swap the className strings for the font
-      variables next/font gives you).
-   ============================================================ */
-
 const NAV_LINKS = [
   { id: "about", label: "ABOUT", hex: "0x01" },
   { id: "skills", label: "SKILLS", hex: "0x02" },
