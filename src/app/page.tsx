@@ -365,7 +365,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: "microkernal",
-    title: "MICROKERNAL-F1",
+    title: "MICROKERNEL-F1",
     category: "Embedded/IoT",
     tags: ["Bare-Metal C", "ARM Cortex-M3"],
     bullets: [
