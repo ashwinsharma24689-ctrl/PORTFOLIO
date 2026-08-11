@@ -40,132 +40,147 @@ function TraceDivider({ flip = false }: { flip?: boolean }) {
 }
 
 /* ---------- animated circuit-board background ---------- */
-/* Routed like a real PCB: traces stay in the top/bottom bands and the left
-   and right gutters, keeping the center content column completely clear
-   instead of cutting across text. 45°-mitered bends with square via pads,
-   like actual board routing, plus a faint static die-floorplan overlay for
-   texture. A dashed "signal" flows along each trace via a CSS animation. */
-const CIRCUIT_TRACES = [
-  // top band — stays above the hero copy
-  { d: "M-40 55 H300 L340 90 H620 L660 55 H1020 L1060 90 H1480", color: "#3FA9F5",
-    vias: [[340, 90], [660, 55], [1060, 90]] },
-  // left gutter — runs top to bottom, left of the text column
-  { d: "M130 -40 V190 L170 230 V430 L100 470 V660 L150 700 V940", color: "#E0A458",
-    vias: [[170, 230], [100, 470], [150, 700]] },
-  // right gutter — mirrors the left, right of the buttons
-  { d: "M1310 -40 V210 L1260 250 V440 L1340 480 V670 L1270 710 V940", color: "#3FA9F5",
-    vias: [[1260, 250], [1340, 480], [1270, 710]] },
-  // bottom band — stays below the CTA buttons
-  { d: "M-40 855 H300 L340 895 H700 L740 855 H1100 L1140 895 H1480", color: "#E0A458",
-    vias: [[340, 895], [740, 855], [1140, 895]] },
-  // diagonal accent in the empty upper-right dead space
-  { d: "M1480 -40 L1220 230 V420 L1370 540", color: "#3FA9F5",
-    vias: [[1220, 230], [1370, 540]] },
-  // short accent, lower-left dead space
-  { d: "M-40 620 H180 L220 660 V820", color: "#E0A458",
-    vias: [[220, 660]] },
+/* Diagonal circuit fans radiating from each corner, in the style of a classic
+   PCB/tech background — true 45° lines, beaded nodes, occasional diamond/ring
+   markers, and a softly lit vignette in the clear center where the content
+   sits. A dashed "signal" flows outward along each line via CSS. */
+type BgLine = { sx: number; sy: number; ex: number; ey: number; color: string };
+
+function fanLines(
+  cornerX: number,
+  cornerY: number,
+  baseAngleDeg: number,
+  spreadDeg: number,
+  count: number,
+  colors: string[]
+): BgLine[] {
+  const lines: BgLine[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const angle = ((baseAngleDeg - spreadDeg / 2 + spreadDeg * t) * Math.PI) / 180;
+    const length = 260 + ((i * 71) % 300);
+    const ex = cornerX + Math.cos(angle) * length;
+    const ey = cornerY + Math.sin(angle) * length;
+    lines.push({ sx: cornerX, sy: cornerY, ex, ey, color: colors[i % colors.length] });
+  }
+  return lines;
+}
+
+const TRACE_COLORS = ["#3FA9F5", "#3FA9F5", "#E0A458", "#3FA9F5"];
+
+const CIRCUIT_TRACES: BgLine[] = [
+  ...fanLines(0, 0, 45, 78, 7, TRACE_COLORS), // top-left, fans down-right
+  ...fanLines(1440, 0, 135, 78, 7, TRACE_COLORS), // top-right, fans down-left
+  ...fanLines(0, 900, -45, 78, 7, TRACE_COLORS), // bottom-left, fans up-right
+  ...fanLines(1440, 900, -135, 78, 7, TRACE_COLORS), // bottom-right, fans up-left
 ];
 
-const CIRCUIT_NODES = [
-  { x: "23.6%", y: "10%" }, { x: "11.8%", y: "25.6%" }, { x: "6.9%", y: "52.2%" },
-  { x: "87.5%", y: "27.8%" }, { x: "93%", y: "53.3%" }, { x: "51.4%", y: "95%" },
-];
-
-/* faint static die-floorplan blocks, tucked in the corners so they never
-   compete with the readable content */
-const FLOORPLAN_BLOCKS = [
-  { x: 40, y: 40, w: 210, h: 130 },
-  { x: 40, y: 190, w: 130, h: 90 },
-  { x: 1190, y: 40, w: 210, h: 90 },
-  { x: 1240, y: 150, w: 160, h: 160 },
-  { x: 60, y: 760, w: 180, h: 100 },
-  { x: 1180, y: 700, w: 220, h: 150 },
-];
+/* beads spaced along each line, plus every 3rd line gets a diamond marker
+   and every 5th a ring marker partway along, echoing the reference art */
+function traceBeads(line: BgLine, idx: number) {
+  const dx = line.ex - line.sx;
+  const dy = line.ey - line.sy;
+  const len = Math.hypot(dx, dy);
+  const spacing = 30;
+  const steps = Math.floor(len / spacing);
+  const beads: { x: number; y: number }[] = [];
+  for (let s = 1; s < steps; s++) {
+    beads.push({ x: line.sx + (dx * s) / steps, y: line.sy + (dy * s) / steps });
+  }
+  return beads;
+}
 
 function BackgroundTraces() {
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-      {/* ambient glow, adds depth */}
-      <div className="absolute -top-40 left-1/2 h-[55vh] w-[55vh] -translate-x-1/2 rounded-full bg-[#3FA9F5]/[0.10] blur-[120px]" />
-      <div className="absolute bottom-0 right-0 h-[50vh] w-[50vh] rounded-full bg-[#E0A458]/[0.08] blur-[120px]" />
+    <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#070B0F]" aria-hidden="true">
+      {/* soft lit vignette in the clear center */}
+      <div
+        className="absolute left-1/2 top-1/2 h-[85vh] w-[85vh] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(63,169,245,0.09) 0%, rgba(63,169,245,0) 70%)" }}
+      />
 
       {/* fine PCB grid texture */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 h-full w-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="pcbgrid" width="120" height="120" patternUnits="userSpaceOnUse">
             <path d="M0 60 H120 M60 0 V120" stroke="#3FA9F5" strokeWidth="0.5" />
             <circle cx="60" cy="60" r="2" fill="#E0A458" />
-            <path d="M0 20 H40 L50 30 H120" stroke="#E0A458" strokeWidth="0.5" fill="none" />
-            <path d="M0 100 H80 L90 90 H120" stroke="#3FA9F5" strokeWidth="0.5" fill="none" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#pcbgrid)" />
       </svg>
 
-      {/* faint die-floorplan blocks, corners only */}
-      <svg
-        className="absolute inset-0 h-full w-full opacity-[0.06]"
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
-      >
-        {FLOORPLAN_BLOCKS.map((b, i) => (
-          <rect
-            key={i}
-            x={b.x}
-            y={b.y}
-            width={b.w}
-            height={b.h}
-            fill="none"
-            stroke={i % 2 === 0 ? "#3FA9F5" : "#E0A458"}
-            strokeWidth="1"
-          />
-        ))}
-      </svg>
-
-      {/* routed traces with flowing signal dashes — kept to the margins */}
+      {/* corner-radiating diagonal traces */}
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice"
       >
-        {CIRCUIT_TRACES.map((trace, i) => (
-          <g key={trace.d}>
-            {/* faint base trace, always visible */}
-            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1.25" opacity="0.24" />
-            {/* square via pads at each bend, like real board routing */}
-            {trace.vias.map(([vx, vy], vi) => (
-              <rect
-                key={vi}
-                x={vx - 2.5}
-                y={vy - 2.5}
-                width="5"
-                height="5"
-                fill={trace.color}
-                opacity="0.35"
-                transform={`rotate(45 ${vx} ${vy})`}
+        {CIRCUIT_TRACES.map((line, i) => {
+          const beads = traceBeads(line, i);
+          return (
+            <g key={i}>
+              <line
+                x1={line.sx}
+                y1={line.sy}
+                x2={line.ex}
+                y2={line.ey}
+                stroke={line.color}
+                strokeWidth="1"
+                opacity="0.28"
               />
-            ))}
-            {/* glowing dashed signal flowing along the trace */}
-            <path
-              d={trace.d}
-              fill="none"
-              stroke={trace.color}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeDasharray="2 26"
-              className="circuit-flow"
-              style={{
-                animationDuration: `${16 + i * 3}s`,
-                animationDelay: `${i * -2.3}s`,
-                filter: `drop-shadow(0 0 4px ${trace.color})`,
-              }}
-            />
-          </g>
-        ))}
+              {beads.map((b, bi) => (
+                <circle key={bi} cx={b.x} cy={b.y} r="1.6" fill={line.color} opacity="0.5" />
+              ))}
+              {i % 3 === 0 && (
+                <rect
+                  x={(line.sx + line.ex) / 2 - 3.5}
+                  y={(line.sy + line.ey) / 2 - 3.5}
+                  width="7"
+                  height="7"
+                  fill={line.color}
+                  opacity="0.55"
+                  transform={`rotate(45 ${(line.sx + line.ex) / 2} ${(line.sy + line.ey) / 2})`}
+                />
+              )}
+              {i % 5 === 0 && (
+                <circle
+                  cx={line.sx + (line.ex - line.sx) * 0.65}
+                  cy={line.sy + (line.ey - line.sy) * 0.65}
+                  r="5"
+                  fill="none"
+                  stroke={line.color}
+                  strokeWidth="1.2"
+                  opacity="0.5"
+                />
+              )}
+              {/* glowing dashed signal flowing outward from the corner */}
+              <line
+                x1={line.sx}
+                y1={line.sy}
+                x2={line.ex}
+                y2={line.ey}
+                stroke={line.color}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeDasharray="2 34"
+                className="circuit-flow"
+                style={{
+                  animationDuration: `${12 + (i % 6) * 2.5}s`,
+                  animationDelay: `${-(i * 1.7)}s`,
+                  filter: `drop-shadow(0 0 3px ${line.color})`,
+                }}
+              />
+            </g>
+          );
+        })}
       </svg>
 
-      {/* slow-breathing solder-point nodes */}
-      {CIRCUIT_NODES.map((n, i) => (
+      {/* a few larger breathing glow nodes near the corners, echoing the reference */}
+      {[
+        { x: "6%", y: "8%" }, { x: "92%", y: "10%" },
+        { x: "8%", y: "90%" }, { x: "90%", y: "86%" },
+      ].map((n, i) => (
         <span
           key={i}
           className="circuit-node absolute h-2 w-2 rounded-full"
