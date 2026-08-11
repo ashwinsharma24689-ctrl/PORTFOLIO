@@ -41,10 +41,32 @@ function TraceDivider({ flip = false }: { flip?: boolean }) {
 
 /* ---------- animated circuit-board background ---------- */
 /* Diagonal circuit fans radiating from each corner, in the style of a classic
-   PCB/tech background — true 45° lines, beaded nodes, occasional diamond/ring
-   markers, and a softly lit vignette in the clear center where the content
-   sits. A dashed "signal" flows outward along each line via CSS. */
-type BgLine = { sx: number; sy: number; ex: number; ey: number; color: string };
+   PCB/tech background — but routed like an actual board: each line is a
+   multi-segment polyline with 45°-mitered jogs (not one straight diagonal),
+   with beaded nodes and occasional diamond/ring markers, converging toward a
+   softly lit clear center where the content sits. A dashed "signal" flows
+   outward along each line via CSS. */
+type Point = [number, number];
+type BgLine = { points: Point[]; color: string };
+
+function pointAdd(p: Point, len: number, angleDeg: number): Point {
+  const rad = (angleDeg * Math.PI) / 180;
+  return [p[0] + Math.cos(rad) * len, p[1] + Math.sin(rad) * len];
+}
+
+/* builds one crooked PCB-style trace: alternating straight run + short 45°
+   jog + straight run, trending along baseAngle overall — like real routed
+   copper rather than a laser-straight diagonal */
+function pcbTrace(corner: Point, baseAngle: number, seed: number): Point[] {
+  const jogDir = seed % 2 === 0 ? 1 : -1;
+  const p0 = corner;
+  const p1 = pointAdd(p0, 60 + ((seed * 53) % 90), baseAngle);
+  const p2 = pointAdd(p1, 16 + ((seed * 7) % 22), baseAngle + 45 * jogDir);
+  const p3 = pointAdd(p2, 70 + ((seed * 61) % 140), baseAngle);
+  const p4 = pointAdd(p3, 14 + ((seed * 11) % 18), baseAngle - 45 * jogDir);
+  const p5 = pointAdd(p4, 40 + ((seed * 29) % 130), baseAngle);
+  return seed % 4 === 3 ? [p0, p1, p2, p3] : [p0, p1, p2, p3, p4, p5];
+}
 
 function fanLines(
   cornerX: number,
@@ -57,11 +79,8 @@ function fanLines(
   const lines: BgLine[] = [];
   for (let i = 0; i < count; i++) {
     const t = count === 1 ? 0.5 : i / (count - 1);
-    const angle = ((baseAngleDeg - spreadDeg / 2 + spreadDeg * t) * Math.PI) / 180;
-    const length = 260 + ((i * 71) % 300);
-    const ex = cornerX + Math.cos(angle) * length;
-    const ey = cornerY + Math.sin(angle) * length;
-    lines.push({ sx: cornerX, sy: cornerY, ex, ey, color: colors[i % colors.length] });
+    const angle = baseAngleDeg - spreadDeg / 2 + spreadDeg * t;
+    lines.push({ points: pcbTrace([cornerX, cornerY], angle, i), color: colors[i % colors.length] });
   }
   return lines;
 }
@@ -75,19 +94,51 @@ const CIRCUIT_TRACES: BgLine[] = [
   ...fanLines(1440, 900, -135, 78, 7, TRACE_COLORS), // bottom-right, fans up-left
 ];
 
-/* beads spaced along each line, plus every 3rd line gets a diamond marker
-   and every 5th a ring marker partway along, echoing the reference art */
-function traceBeads(line: BgLine, idx: number) {
-  const dx = line.ex - line.sx;
-  const dy = line.ey - line.sy;
-  const len = Math.hypot(dx, dy);
-  const spacing = 30;
-  const steps = Math.floor(len / spacing);
-  const beads: { x: number; y: number }[] = [];
-  for (let s = 1; s < steps; s++) {
-    beads.push({ x: line.sx + (dx * s) / steps, y: line.sy + (dy * s) / steps });
+function polylineLength(points: Point[]): number {
+  let total = 0;
+  for (let s = 0; s < points.length - 1; s++) {
+    total += Math.hypot(points[s + 1][0] - points[s][0], points[s + 1][1] - points[s][1]);
+  }
+  return total;
+}
+
+function pointAtFraction(points: Point[], frac: number): Point {
+  const target = polylineLength(points) * frac;
+  let acc = 0;
+  for (let s = 0; s < points.length - 1; s++) {
+    const [x1, y1] = points[s];
+    const [x2, y2] = points[s + 1];
+    const segLen = Math.hypot(x2 - x1, y2 - y1);
+    if (acc + segLen >= target) {
+      const tt = segLen === 0 ? 0 : (target - acc) / segLen;
+      return [x1 + (x2 - x1) * tt, y1 + (y2 - y1) * tt];
+    }
+    acc += segLen;
+  }
+  return points[points.length - 1];
+}
+
+/* beads spaced evenly along the whole polyline (across all its segments) */
+function traceBeads(points: Point[], spacing = 30): Point[] {
+  const beads: Point[] = [];
+  let carry = spacing;
+  for (let s = 0; s < points.length - 1; s++) {
+    const [x1, y1] = points[s];
+    const [x2, y2] = points[s + 1];
+    const segLen = Math.hypot(x2 - x1, y2 - y1);
+    let dist = carry;
+    while (dist < segLen) {
+      const tt = dist / segLen;
+      beads.push([x1 + (x2 - x1) * tt, y1 + (y2 - y1) * tt]);
+      dist += spacing;
+    }
+    carry = dist - segLen;
   }
   return beads;
+}
+
+function toPathD(points: Point[]): string {
+  return points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
 }
 
 function BackgroundTraces() {
@@ -110,56 +161,41 @@ function BackgroundTraces() {
         <rect width="100%" height="100%" fill="url(#pcbgrid)" />
       </svg>
 
-      {/* corner-radiating diagonal traces */}
+      {/* corner-radiating crooked PCB traces */}
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice"
       >
         {CIRCUIT_TRACES.map((line, i) => {
-          const beads = traceBeads(line, i);
+          const d = toPathD(line.points);
+          const beads = traceBeads(line.points);
+          const mid = pointAtFraction(line.points, 0.5);
+          const ring = pointAtFraction(line.points, 0.72);
           return (
             <g key={i}>
-              <line
-                x1={line.sx}
-                y1={line.sy}
-                x2={line.ex}
-                y2={line.ey}
-                stroke={line.color}
-                strokeWidth="1"
-                opacity="0.28"
-              />
+              <path d={d} fill="none" stroke={line.color} strokeWidth="1" opacity="0.28" />
               {beads.map((b, bi) => (
-                <circle key={bi} cx={b.x} cy={b.y} r="1.6" fill={line.color} opacity="0.5" />
+                <circle key={bi} cx={b[0]} cy={b[1]} r="1.6" fill={line.color} opacity="0.5" />
               ))}
               {i % 3 === 0 && (
                 <rect
-                  x={(line.sx + line.ex) / 2 - 3.5}
-                  y={(line.sy + line.ey) / 2 - 3.5}
+                  x={mid[0] - 3.5}
+                  y={mid[1] - 3.5}
                   width="7"
                   height="7"
                   fill={line.color}
                   opacity="0.55"
-                  transform={`rotate(45 ${(line.sx + line.ex) / 2} ${(line.sy + line.ey) / 2})`}
+                  transform={`rotate(45 ${mid[0]} ${mid[1]})`}
                 />
               )}
               {i % 5 === 0 && (
-                <circle
-                  cx={line.sx + (line.ex - line.sx) * 0.65}
-                  cy={line.sy + (line.ey - line.sy) * 0.65}
-                  r="5"
-                  fill="none"
-                  stroke={line.color}
-                  strokeWidth="1.2"
-                  opacity="0.5"
-                />
+                <circle cx={ring[0]} cy={ring[1]} r="5" fill="none" stroke={line.color} strokeWidth="1.2" opacity="0.5" />
               )}
               {/* glowing dashed signal flowing outward from the corner */}
-              <line
-                x1={line.sx}
-                y1={line.sy}
-                x2={line.ex}
-                y2={line.ey}
+              <path
+                d={d}
+                fill="none"
                 stroke={line.color}
                 strokeWidth="1.8"
                 strokeLinecap="round"
