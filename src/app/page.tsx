@@ -39,24 +39,107 @@ function TraceDivider({ flip = false }: { flip?: boolean }) {
   );
 }
 
-/* ---------- background trace texture (fixed, ultra low opacity) ---------- */
+/* ---------- animated circuit-board background ---------- */
+/* A handful of routed PCB traces (right-angle bends, like the TraceDivider
+   above) spread across the viewport. A small glowing dot travels along each
+   one on a slow, staggered loop — like signal propagation. Kept very subtle
+   and paused entirely for users who prefer reduced motion. */
+const CIRCUIT_TRACES = [
+  { d: "M-40 120 H260 L300 160 H520 L560 120 H900 L940 160 H1480", color: "#3FA9F5", dur: 22 },
+  { d: "M1480 80 H1180 L1140 40 H860 L820 80 H420", color: "#E0A458", dur: 26 },
+  { d: "M-40 420 H320 L360 460 H640 L680 420 H1080 L1120 460 H1480", color: "#3FA9F5", dur: 30 },
+  { d: "M1480 560 H1160 L1120 600 H760 L720 640 H360 L320 600 H-40", color: "#E0A458", dur: 24 },
+  { d: "M-40 760 H260 L300 720 H660 L700 760 H1040 L1080 720 H1480", color: "#3FA9F5", dur: 28 },
+  { d: "M1480 860 H1220 L1180 900 H900", color: "#E0A458", dur: 18 },
+];
+
+const CIRCUIT_NODES = [
+  { x: "18%", y: "13%" }, { x: "63%", y: "9%" }, { x: "38%", y: "47%" },
+  { x: "81%", y: "62%" }, { x: "24%", y: "84%" }, { x: "72%", y: "96%" },
+];
+
 function BackgroundTraces() {
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setAnimate(!reduce);
+  }, []);
+
   return (
-    <svg
-      className="pointer-events-none fixed inset-0 h-full w-full opacity-[0.05]"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <pattern id="pcbgrid" width="120" height="120" patternUnits="userSpaceOnUse">
-          <path d="M0 60 H120 M60 0 V120" stroke="#3FA9F5" strokeWidth="0.5" />
-          <circle cx="60" cy="60" r="2" fill="#E0A458" />
-          <path d="M0 20 H40 L50 30 H120" stroke="#E0A458" strokeWidth="0.5" fill="none" />
-          <path d="M0 100 H80 L90 90 H120" stroke="#3FA9F5" strokeWidth="0.5" fill="none" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#pcbgrid)" />
-    </svg>
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      {/* ambient glow, adds depth without drawing attention */}
+      <div className="absolute -top-40 left-1/2 h-[50vh] w-[50vh] -translate-x-1/2 rounded-full bg-[#3FA9F5]/[0.05] blur-[140px]" />
+      <div className="absolute bottom-0 right-0 h-[45vh] w-[45vh] rounded-full bg-[#E0A458]/[0.035] blur-[140px]" />
+
+      {/* fine PCB grid texture */}
+      <svg className="absolute inset-0 h-full w-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="pcbgrid" width="120" height="120" patternUnits="userSpaceOnUse">
+            <path d="M0 60 H120 M60 0 V120" stroke="#3FA9F5" strokeWidth="0.5" />
+            <circle cx="60" cy="60" r="2" fill="#E0A458" />
+            <path d="M0 20 H40 L50 30 H120" stroke="#E0A458" strokeWidth="0.5" fill="none" />
+            <path d="M0 100 H80 L90 90 H120" stroke="#3FA9F5" strokeWidth="0.5" fill="none" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#pcbgrid)" />
+      </svg>
+
+      {/* routed traces with traveling signal pulses */}
+      <svg
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <filter id="pulseGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {CIRCUIT_TRACES.map((trace, i) => (
+          <g key={trace.d}>
+            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1" opacity="0.1" />
+            {animate && (
+              <circle r="2.2" fill={trace.color} filter="url(#pulseGlow)">
+                <animateMotion
+                  dur={`${trace.dur}s`}
+                  repeatCount="indefinite"
+                  begin={`${i * 1.6}s`}
+                  path={trace.d}
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0;0;0.85;0.85;0"
+                  keyTimes="0;0.03;0.12;0.88;1"
+                  dur={`${trace.dur}s`}
+                  begin={`${i * 1.6}s`}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            )}
+          </g>
+        ))}
+      </svg>
+
+      {/* slow-breathing solder-point nodes */}
+      {CIRCUIT_NODES.map((n, i) => (
+        <span
+          key={i}
+          className="circuit-node absolute h-1.5 w-1.5 rounded-full"
+          style={{
+            left: n.x,
+            top: n.y,
+            backgroundColor: i % 2 === 0 ? "#3FA9F5" : "#E0A458",
+            animationDelay: `${i * 0.9}s`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -365,7 +448,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: "microkernal",
-    title: "MICROKERNEL-F1",
+    title: "MICROKERNAL-F1",
     category: "Embedded/IoT",
     tags: ["Bare-Metal C", "ARM Cortex-M3"],
     bullets: [
