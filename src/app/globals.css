@@ -25,27 +25,47 @@ a {
   text-decoration: none;
 }
 
-/* circuit-board background: slow breathing glow on solder-point nodes */
+/* circuit-board background: signal dashes flowing along traces */
+.circuit-flow {
+  stroke-dashoffset: 0;
+  animation-name: circuit-flow-move;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes circuit-flow-move {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* circuit-board background: breathing glow on solder-point nodes */
 .circuit-node {
-  box-shadow: 0 0 6px currentColor;
-  animation: circuit-node-breathe 6s ease-in-out infinite;
+  box-shadow: 0 0 10px 2px currentColor;
+  animation: circuit-node-breathe 5s ease-in-out infinite;
 }
 
 @keyframes circuit-node-breathe {
   0%,
   100% {
-    opacity: 0.15;
+    opacity: 0.3;
     transform: scale(1);
   }
   50% {
-    opacity: 0.55;
-    transform: scale(1.4);
+    opacity: 0.9;
+    transform: scale(1.5);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .circuit-flow {
+    animation: none;
+  }
   .circuit-node {
     animation: none;
-    opacity: 0.2;
+    opacity: 0.4;
   }
 }
