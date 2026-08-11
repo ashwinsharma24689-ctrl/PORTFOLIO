@@ -40,17 +40,18 @@ function TraceDivider({ flip = false }: { flip?: boolean }) {
 }
 
 /* ---------- animated circuit-board background ---------- */
-/* A handful of routed PCB traces (right-angle bends, like the TraceDivider
-   above) spread across the viewport. A small glowing dot travels along each
-   one on a slow, staggered loop — like signal propagation. Kept very subtle
-   and paused entirely for users who prefer reduced motion. */
+/* Routed PCB traces (right-angle bends, like the TraceDivider above) spread
+   across the viewport. Each trace has a dashed "signal" that flows along it
+   via a pure CSS stroke-dashoffset animation — more reliable across browsers
+   than SVG's animateMotion, and easy to keep an eye on for visibility.
+   Reduced-motion is handled entirely in CSS so it works even before hydration. */
 const CIRCUIT_TRACES = [
-  { d: "M-40 120 H260 L300 160 H520 L560 120 H900 L940 160 H1480", color: "#3FA9F5", dur: 22 },
-  { d: "M1480 80 H1180 L1140 40 H860 L820 80 H420", color: "#E0A458", dur: 26 },
-  { d: "M-40 420 H320 L360 460 H640 L680 420 H1080 L1120 460 H1480", color: "#3FA9F5", dur: 30 },
-  { d: "M1480 560 H1160 L1120 600 H760 L720 640 H360 L320 600 H-40", color: "#E0A458", dur: 24 },
-  { d: "M-40 760 H260 L300 720 H660 L700 760 H1040 L1080 720 H1480", color: "#3FA9F5", dur: 28 },
-  { d: "M1480 860 H1220 L1180 900 H900", color: "#E0A458", dur: 18 },
+  { d: "M-40 120 H260 L300 160 H520 L560 120 H900 L940 160 H1480", color: "#3FA9F5" },
+  { d: "M1480 80 H1180 L1140 40 H860 L820 80 H420", color: "#E0A458" },
+  { d: "M-40 420 H320 L360 460 H640 L680 420 H1080 L1120 460 H1480", color: "#3FA9F5" },
+  { d: "M1480 560 H1160 L1120 600 H760 L720 640 H360 L320 600 H-40", color: "#E0A458" },
+  { d: "M-40 760 H260 L300 720 H660 L700 760 H1040 L1080 720 H1480", color: "#3FA9F5" },
+  { d: "M1480 860 H1220 L1180 900 H900", color: "#E0A458" },
 ];
 
 const CIRCUIT_NODES = [
@@ -59,21 +60,14 @@ const CIRCUIT_NODES = [
 ];
 
 function BackgroundTraces() {
-  const [animate, setAnimate] = useState(false);
-
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setAnimate(!reduce);
-  }, []);
-
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
-      {/* ambient glow, adds depth without drawing attention */}
-      <div className="absolute -top-40 left-1/2 h-[50vh] w-[50vh] -translate-x-1/2 rounded-full bg-[#3FA9F5]/[0.05] blur-[140px]" />
-      <div className="absolute bottom-0 right-0 h-[45vh] w-[45vh] rounded-full bg-[#E0A458]/[0.035] blur-[140px]" />
+    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+      {/* ambient glow, adds depth */}
+      <div className="absolute -top-40 left-1/2 h-[55vh] w-[55vh] -translate-x-1/2 rounded-full bg-[#3FA9F5]/[0.10] blur-[120px]" />
+      <div className="absolute bottom-0 right-0 h-[50vh] w-[50vh] rounded-full bg-[#E0A458]/[0.08] blur-[120px]" />
 
       {/* fine PCB grid texture */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 h-full w-full opacity-[0.09]" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="pcbgrid" width="120" height="120" patternUnits="userSpaceOnUse">
             <path d="M0 60 H120 M60 0 V120" stroke="#3FA9F5" strokeWidth="0.5" />
@@ -85,43 +79,31 @@ function BackgroundTraces() {
         <rect width="100%" height="100%" fill="url(#pcbgrid)" />
       </svg>
 
-      {/* routed traces with traveling signal pulses */}
+      {/* routed traces with flowing signal dashes */}
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice"
       >
-        <defs>
-          <filter id="pulseGlow" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
         {CIRCUIT_TRACES.map((trace, i) => (
           <g key={trace.d}>
-            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1" opacity="0.1" />
-            {animate && (
-              <circle r="2.2" fill={trace.color} filter="url(#pulseGlow)">
-                <animateMotion
-                  dur={`${trace.dur}s`}
-                  repeatCount="indefinite"
-                  begin={`${i * 1.6}s`}
-                  path={trace.d}
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0;0;0.85;0.85;0"
-                  keyTimes="0;0.03;0.12;0.88;1"
-                  dur={`${trace.dur}s`}
-                  begin={`${i * 1.6}s`}
-                  repeatCount="indefinite"
-                />
-              </circle>
-            )}
+            {/* faint base trace, always visible */}
+            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1.25" opacity="0.22" />
+            {/* glowing dashed signal flowing along the trace */}
+            <path
+              d={trace.d}
+              fill="none"
+              stroke={trace.color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="2 26"
+              className="circuit-flow"
+              style={{
+                animationDuration: `${14 + i * 3}s`,
+                animationDelay: `${i * -2.3}s`,
+                filter: `drop-shadow(0 0 4px ${trace.color})`,
+              }}
+            />
           </g>
         ))}
       </svg>
@@ -130,11 +112,12 @@ function BackgroundTraces() {
       {CIRCUIT_NODES.map((n, i) => (
         <span
           key={i}
-          className="circuit-node absolute h-1.5 w-1.5 rounded-full"
+          className="circuit-node absolute h-2 w-2 rounded-full"
           style={{
             left: n.x,
             top: n.y,
             backgroundColor: i % 2 === 0 ? "#3FA9F5" : "#E0A458",
+            color: i % 2 === 0 ? "#3FA9F5" : "#E0A458",
             animationDelay: `${i * 0.9}s`,
           }}
         />
