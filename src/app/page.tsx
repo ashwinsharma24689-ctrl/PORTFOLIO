@@ -40,23 +40,46 @@ function TraceDivider({ flip = false }: { flip?: boolean }) {
 }
 
 /* ---------- animated circuit-board background ---------- */
-/* Routed PCB traces (right-angle bends, like the TraceDivider above) spread
-   across the viewport. Each trace has a dashed "signal" that flows along it
-   via a pure CSS stroke-dashoffset animation — more reliable across browsers
-   than SVG's animateMotion, and easy to keep an eye on for visibility.
-   Reduced-motion is handled entirely in CSS so it works even before hydration. */
+/* Routed like a real PCB: traces stay in the top/bottom bands and the left
+   and right gutters, keeping the center content column completely clear
+   instead of cutting across text. 45°-mitered bends with square via pads,
+   like actual board routing, plus a faint static die-floorplan overlay for
+   texture. A dashed "signal" flows along each trace via a CSS animation. */
 const CIRCUIT_TRACES = [
-  { d: "M-40 120 H260 L300 160 H520 L560 120 H900 L940 160 H1480", color: "#3FA9F5" },
-  { d: "M1480 80 H1180 L1140 40 H860 L820 80 H420", color: "#E0A458" },
-  { d: "M-40 420 H320 L360 460 H640 L680 420 H1080 L1120 460 H1480", color: "#3FA9F5" },
-  { d: "M1480 560 H1160 L1120 600 H760 L720 640 H360 L320 600 H-40", color: "#E0A458" },
-  { d: "M-40 760 H260 L300 720 H660 L700 760 H1040 L1080 720 H1480", color: "#3FA9F5" },
-  { d: "M1480 860 H1220 L1180 900 H900", color: "#E0A458" },
+  // top band — stays above the hero copy
+  { d: "M-40 55 H300 L340 90 H620 L660 55 H1020 L1060 90 H1480", color: "#3FA9F5",
+    vias: [[340, 90], [660, 55], [1060, 90]] },
+  // left gutter — runs top to bottom, left of the text column
+  { d: "M130 -40 V190 L170 230 V430 L100 470 V660 L150 700 V940", color: "#E0A458",
+    vias: [[170, 230], [100, 470], [150, 700]] },
+  // right gutter — mirrors the left, right of the buttons
+  { d: "M1310 -40 V210 L1260 250 V440 L1340 480 V670 L1270 710 V940", color: "#3FA9F5",
+    vias: [[1260, 250], [1340, 480], [1270, 710]] },
+  // bottom band — stays below the CTA buttons
+  { d: "M-40 855 H300 L340 895 H700 L740 855 H1100 L1140 895 H1480", color: "#E0A458",
+    vias: [[340, 895], [740, 855], [1140, 895]] },
+  // diagonal accent in the empty upper-right dead space
+  { d: "M1480 -40 L1220 230 V420 L1370 540", color: "#3FA9F5",
+    vias: [[1220, 230], [1370, 540]] },
+  // short accent, lower-left dead space
+  { d: "M-40 620 H180 L220 660 V820", color: "#E0A458",
+    vias: [[220, 660]] },
 ];
 
 const CIRCUIT_NODES = [
-  { x: "18%", y: "13%" }, { x: "63%", y: "9%" }, { x: "38%", y: "47%" },
-  { x: "81%", y: "62%" }, { x: "24%", y: "84%" }, { x: "72%", y: "96%" },
+  { x: "23.6%", y: "10%" }, { x: "11.8%", y: "25.6%" }, { x: "6.9%", y: "52.2%" },
+  { x: "87.5%", y: "27.8%" }, { x: "93%", y: "53.3%" }, { x: "51.4%", y: "95%" },
+];
+
+/* faint static die-floorplan blocks, tucked in the corners so they never
+   compete with the readable content */
+const FLOORPLAN_BLOCKS = [
+  { x: 40, y: 40, w: 210, h: 130 },
+  { x: 40, y: 190, w: 130, h: 90 },
+  { x: 1190, y: 40, w: 210, h: 90 },
+  { x: 1240, y: 150, w: 160, h: 160 },
+  { x: 60, y: 760, w: 180, h: 100 },
+  { x: 1180, y: 700, w: 220, h: 150 },
 ];
 
 function BackgroundTraces() {
@@ -67,7 +90,7 @@ function BackgroundTraces() {
       <div className="absolute bottom-0 right-0 h-[50vh] w-[50vh] rounded-full bg-[#E0A458]/[0.08] blur-[120px]" />
 
       {/* fine PCB grid texture */}
-      <svg className="absolute inset-0 h-full w-full opacity-[0.09]" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 h-full w-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="pcbgrid" width="120" height="120" patternUnits="userSpaceOnUse">
             <path d="M0 60 H120 M60 0 V120" stroke="#3FA9F5" strokeWidth="0.5" />
@@ -79,7 +102,27 @@ function BackgroundTraces() {
         <rect width="100%" height="100%" fill="url(#pcbgrid)" />
       </svg>
 
-      {/* routed traces with flowing signal dashes */}
+      {/* faint die-floorplan blocks, corners only */}
+      <svg
+        className="absolute inset-0 h-full w-full opacity-[0.06]"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        {FLOORPLAN_BLOCKS.map((b, i) => (
+          <rect
+            key={i}
+            x={b.x}
+            y={b.y}
+            width={b.w}
+            height={b.h}
+            fill="none"
+            stroke={i % 2 === 0 ? "#3FA9F5" : "#E0A458"}
+            strokeWidth="1"
+          />
+        ))}
+      </svg>
+
+      {/* routed traces with flowing signal dashes — kept to the margins */}
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 1440 900"
@@ -88,7 +131,20 @@ function BackgroundTraces() {
         {CIRCUIT_TRACES.map((trace, i) => (
           <g key={trace.d}>
             {/* faint base trace, always visible */}
-            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1.25" opacity="0.22" />
+            <path d={trace.d} fill="none" stroke={trace.color} strokeWidth="1.25" opacity="0.24" />
+            {/* square via pads at each bend, like real board routing */}
+            {trace.vias.map(([vx, vy], vi) => (
+              <rect
+                key={vi}
+                x={vx - 2.5}
+                y={vy - 2.5}
+                width="5"
+                height="5"
+                fill={trace.color}
+                opacity="0.35"
+                transform={`rotate(45 ${vx} ${vy})`}
+              />
+            ))}
             {/* glowing dashed signal flowing along the trace */}
             <path
               d={trace.d}
@@ -99,7 +155,7 @@ function BackgroundTraces() {
               strokeDasharray="2 26"
               className="circuit-flow"
               style={{
-                animationDuration: `${14 + i * 3}s`,
+                animationDuration: `${16 + i * 3}s`,
                 animationDelay: `${i * -2.3}s`,
                 filter: `drop-shadow(0 0 4px ${trace.color})`,
               }}
